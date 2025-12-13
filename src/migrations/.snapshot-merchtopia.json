@@ -6,15 +6,15 @@
   "tables": [
     {
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "varchar(255)",
+        "uuid": {
+          "name": "uuid",
+          "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "length": 255,
-          "mappedType": "string"
+          "default": "gen_random_uuid()",
+          "mappedType": "uuid"
         },
         "sku": {
           "name": "sku",
@@ -43,7 +43,7 @@
         {
           "keyName": "product_pkey",
           "columnNames": [
-            "id"
+            "uuid"
           ],
           "composite": false,
           "constraint": true,

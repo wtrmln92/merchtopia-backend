@@ -2,8 +2,8 @@ import { Entity, PrimaryKey, Property } from "@mikro-orm/core";
 
 @Entity()
 export class Product {
-    @PrimaryKey()
-    id!: string;
+    @PrimaryKey({type: 'uuid', defaultRaw: 'gen_random_uuid()'})
+    uuid: string;
 
     @Property()
     sku!: string;
