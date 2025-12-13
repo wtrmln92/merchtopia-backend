@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { EntityManager } from '@mikro-orm/postgresql';
@@ -23,15 +23,30 @@ export class ProductService {
     return this.em.findAll(Product);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} product`;
+  async findOne(uuid: string) {
+    const product = await this.em.findOne(Product, uuid);
+    if (product == null) {
+      throw new NotFoundException('Product not found');
+    }
+    return product;
   }
 
-  update(id: number, updateProductDto: UpdateProductDto) {
-    return `This action updates a #${id} product`;
+  async update(uuid: string, updateProductDto: UpdateProductDto) {
+    const product = await this.em.findOne(Product, uuid);
+    if (product == null) {
+      throw new NotFoundException('Product not found');
+    }
+
+    this.em.assign(product, updateProductDto);
+    await this.em.flush();
+    return product;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} product`;
+  async remove(uuid: string) {
+    const product = await this.findOne(uuid);
+    if (product == null) {
+      throw new NotFoundException('Product not found');
+    }
+    await this.em.remove(product).flush();
   }
 }

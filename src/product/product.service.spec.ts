@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ProductService } from './product.service';
 import { EntityManager } from '@mikro-orm/postgresql';
 import { Product } from '../entities/product.entity';
+import { NotFoundException } from '@nestjs/common';
 
 describe('ProductService', () => {
   let service: ProductService;
@@ -12,6 +13,9 @@ describe('ProductService', () => {
       persist: jest.fn().mockReturnThis(),
       flush: jest.fn(),
       findAll: jest.fn(),
+      findOne: jest.fn(),
+      assign: jest.fn(),
+      remove: jest.fn().mockReturnThis(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -73,6 +77,126 @@ describe('ProductService', () => {
 
       expect(result).toEqual([]);
       expect(mockEntityManager.findAll).toHaveBeenCalledWith(Product);
+    });
+  });
+
+  describe('findOne', () => {
+    const mockUuid = '550e8400-e29b-41d4-a716-446655440000';
+
+    it('should return a product when found', async () => {
+      const mockProduct = { uuid: mockUuid, sku: 'SKU-001', displayName: 'Test Product' };
+      (mockEntityManager.findOne as jest.Mock).mockResolvedValue(mockProduct);
+
+      const result = await service.findOne(mockUuid);
+
+      expect(result).toEqual(mockProduct);
+      expect(mockEntityManager.findOne).toHaveBeenCalledWith(Product, mockUuid);
+    });
+
+    it('should throw NotFoundException when product does not exist', async () => {
+      (mockEntityManager.findOne as jest.Mock).mockResolvedValue(null);
+
+      await expect(service.findOne(mockUuid)).rejects.toThrow(NotFoundException);
+      await expect(service.findOne(mockUuid)).rejects.toThrow('Product not found');
+    });
+  });
+
+  describe('update', () => {
+    const mockUuid = '550e8400-e29b-41d4-a716-446655440000';
+    const existingProduct = { uuid: mockUuid, sku: 'SKU-001', displayName: 'Original Name' };
+
+    it('should update and return the product when found', async () => {
+      const updateDto = { sku: 'SKU-002', displayName: 'Updated Name' };
+      (mockEntityManager.findOne as jest.Mock).mockResolvedValue({ ...existingProduct });
+
+      const result = await service.update(mockUuid, updateDto);
+
+      expect(mockEntityManager.findOne).toHaveBeenCalledWith(Product, mockUuid);
+      expect(mockEntityManager.assign).toHaveBeenCalledWith(
+        expect.objectContaining({ uuid: mockUuid }),
+        updateDto
+      );
+      expect(mockEntityManager.flush).toHaveBeenCalled();
+      expect(result.uuid).toBe(mockUuid);
+    });
+
+    it('should handle partial update with only sku', async () => {
+      const updateDto = { sku: 'SKU-UPDATED' };
+      (mockEntityManager.findOne as jest.Mock).mockResolvedValue({ ...existingProduct });
+
+      await service.update(mockUuid, updateDto);
+
+      expect(mockEntityManager.assign).toHaveBeenCalledWith(
+        expect.objectContaining({ uuid: mockUuid }),
+        updateDto
+      );
+    });
+
+    it('should handle partial update with only displayName', async () => {
+      const updateDto = { displayName: 'New Display Name' };
+      (mockEntityManager.findOne as jest.Mock).mockResolvedValue({ ...existingProduct });
+
+      await service.update(mockUuid, updateDto);
+
+      expect(mockEntityManager.assign).toHaveBeenCalledWith(
+        expect.objectContaining({ uuid: mockUuid }),
+        updateDto
+      );
+    });
+
+    it('should throw NotFoundException when product does not exist', async () => {
+      (mockEntityManager.findOne as jest.Mock).mockResolvedValue(null);
+
+      await expect(service.update(mockUuid, { sku: 'SKU-002' })).rejects.toThrow(NotFoundException);
+      await expect(service.update(mockUuid, { sku: 'SKU-002' })).rejects.toThrow('Product not found');
+      expect(mockEntityManager.assign).not.toHaveBeenCalled();
+      expect(mockEntityManager.flush).not.toHaveBeenCalled();
+    });
+
+    it('should handle empty update dto', async () => {
+      const updateDto = {};
+      (mockEntityManager.findOne as jest.Mock).mockResolvedValue({ ...existingProduct });
+
+      const result = await service.update(mockUuid, updateDto);
+
+      expect(mockEntityManager.assign).toHaveBeenCalledWith(
+        expect.objectContaining({ uuid: mockUuid }),
+        updateDto
+      );
+      expect(result.uuid).toBe(mockUuid);
+    });
+  });
+
+  describe('remove', () => {
+    const mockUuid = '550e8400-e29b-41d4-a716-446655440000';
+
+    it('should remove the product when found', async () => {
+      const mockProduct = { uuid: mockUuid, sku: 'SKU-001', displayName: 'Test Product' };
+      (mockEntityManager.findOne as jest.Mock).mockResolvedValue(mockProduct);
+
+      await service.remove(mockUuid);
+
+      expect(mockEntityManager.findOne).toHaveBeenCalledWith(Product, mockUuid);
+      expect(mockEntityManager.remove).toHaveBeenCalledWith(mockProduct);
+      expect(mockEntityManager.flush).toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when product does not exist', async () => {
+      (mockEntityManager.findOne as jest.Mock).mockResolvedValue(null);
+
+      await expect(service.remove(mockUuid)).rejects.toThrow(NotFoundException);
+      await expect(service.remove(mockUuid)).rejects.toThrow('Product not found');
+      expect(mockEntityManager.remove).not.toHaveBeenCalled();
+    });
+
+    it('should call findOne internally to validate existence', async () => {
+      const mockProduct = { uuid: mockUuid, sku: 'SKU-001', displayName: 'Test Product' };
+      (mockEntityManager.findOne as jest.Mock).mockResolvedValue(mockProduct);
+
+      await service.remove(mockUuid);
+
+      // Verify findOne was called (through the service's findOne method)
+      expect(mockEntityManager.findOne).toHaveBeenCalledWith(Product, mockUuid);
     });
   });
 });
