@@ -2,9 +2,14 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ProductModule } from './product/product.module';
+import { PostgreSqlDriver } from '@mikro-orm/postgresql';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
 
 @Module({
-  imports: [ProductModule],
+  imports: [
+    MikroOrmModule.forRoot(),
+    ProductModule
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
