@@ -2,7 +2,7 @@ import { Options, PostgreSqlDriver } from '@mikro-orm/postgresql';
 import { Migrator } from '@mikro-orm/migrations';
 
 const config: Options = {
-  entities: ['./dist/entities'],
+  entities: ['./dist/src/entities'],
   entitiesTs: ['./src/entities'],
   dbName: 'merchtopia',
   driver: PostgreSqlDriver,
