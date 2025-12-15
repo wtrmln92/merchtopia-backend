@@ -47,6 +47,7 @@ export class ProductService {
     if (product == null) {
       throw new NotFoundException('Product not found');
     }
-    await this.em.remove(product).flush();
+    product.deletedAt = new Date();
+    await this.em.flush();
   }
 }
