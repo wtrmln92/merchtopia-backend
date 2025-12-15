@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 
@@ -6,10 +7,14 @@ describe('AuthService', () => {
   let service: AuthService;
   let mockUsersService: jest.Mocked<UsersService>;
 
+  // bcrypt hash of 'correctpassword' with 10 salt rounds
+  const hashedPassword =
+    '$2b$10$sSha3DzRA1ou/BaYFhVk5OLQvIQz0mUrKRWd1QNfjKyuY3n8XSv5C';
+
   const mockUser = {
     uuid: '123e4567-e89b-12d3-a456-426614174000',
     email: 'test@example.com',
-    passwordHash: 'correctpassword',
+    passwordHash: hashedPassword,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -79,6 +84,24 @@ describe('AuthService', () => {
 
       expect(result).toBeNull();
       expect(mockUsersService.findOne).toHaveBeenCalledWith('test@example.com');
+    });
+  });
+
+  describe('hashPassword', () => {
+    it('should return a valid bcrypt hash', async () => {
+      const password = 'testpassword';
+      const hash = await service.hashPassword(password);
+
+      expect(hash).toMatch(/^\$2[aby]\$\d+\$/);
+      expect(await bcrypt.compare(password, hash)).toBe(true);
+    });
+
+    it('should generate different hashes for the same password', async () => {
+      const password = 'testpassword';
+      const hash1 = await service.hashPassword(password);
+      const hash2 = await service.hashPassword(password);
+
+      expect(hash1).not.toBe(hash2);
     });
   });
 });

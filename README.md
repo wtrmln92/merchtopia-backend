@@ -33,6 +33,17 @@ $ pnpm run start:dev
 $ pnpm run start:prod
 ```
 
+## Add users:
+
+To add users you either need to log in or for the first user, run a script
+
+```bash
+$ pnpm run create-user <user-email>
+
+# Enter password when prompted
+Password:
+```
+
 ## Run tests
 
 ```bash
