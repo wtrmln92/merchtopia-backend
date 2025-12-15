@@ -12,10 +12,10 @@ import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UseGuards } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
+import { AuthenticatedGuard } from '../auth/authenticated.guard';
 
 @Controller('product')
-@UseGuards(AuthGuard('local'))
+@UseGuards(AuthenticatedGuard)
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
