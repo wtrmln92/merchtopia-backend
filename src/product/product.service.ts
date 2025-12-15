@@ -6,15 +6,13 @@ import { Product } from '../../src/entities/product.entity';
 
 @Injectable()
 export class ProductService {
-  constructor(
-    private readonly em: EntityManager,
-  ) {}
+  constructor(private readonly em: EntityManager) {}
 
   async create(createProductDto: CreateProductDto) {
-    const {sku, displayName} = createProductDto;
+    const { sku, displayName } = createProductDto;
     const product = new Product();
-    product.sku = sku
-    product.displayName = displayName
+    product.sku = sku;
+    product.displayName = displayName;
     await this.em.persist(product).flush();
     return product;
   }
