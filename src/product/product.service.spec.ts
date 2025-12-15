@@ -170,14 +170,14 @@ describe('ProductService', () => {
   describe('remove', () => {
     const mockUuid = '550e8400-e29b-41d4-a716-446655440000';
 
-    it('should remove the product when found', async () => {
+    it('should soft delete the product when found', async () => {
       const mockProduct = { uuid: mockUuid, sku: 'SKU-001', displayName: 'Test Product' };
       (mockEntityManager.findOne as jest.Mock).mockResolvedValue(mockProduct);
 
       await service.remove(mockUuid);
 
       expect(mockEntityManager.findOne).toHaveBeenCalledWith(Product, mockUuid);
-      expect(mockEntityManager.remove).toHaveBeenCalledWith(mockProduct);
+      expect(mockProduct.deletedAt).toBeInstanceOf(Date);
       expect(mockEntityManager.flush).toHaveBeenCalled();
     });
 
@@ -186,7 +186,7 @@ describe('ProductService', () => {
 
       await expect(service.remove(mockUuid)).rejects.toThrow(NotFoundException);
       await expect(service.remove(mockUuid)).rejects.toThrow('Product not found');
-      expect(mockEntityManager.remove).not.toHaveBeenCalled();
+      expect(mockEntityManager.flush).not.toHaveBeenCalled();
     });
 
     it('should call findOne internally to validate existence', async () => {
