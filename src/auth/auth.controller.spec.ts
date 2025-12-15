@@ -1,4 +1,7 @@
-import { UnauthorizedException } from '@nestjs/common';
+import {
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthController } from './auth.controller';
 
 describe('AuthController', () => {
@@ -48,6 +51,55 @@ describe('AuthController', () => {
       const mockRequest = {};
 
       expect(() => controller.me(mockRequest)).toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('logout', () => {
+    it('should successfully logout and destroy session', async () => {
+      const mockRequest = {
+        logout: jest.fn((callback) => callback(null)),
+        session: {
+          destroy: jest.fn((callback) => callback(null)),
+        },
+      };
+
+      const result = await controller.logout(mockRequest);
+
+      expect(result).toEqual({ message: 'Logged out successfully' });
+      expect(mockRequest.logout).toHaveBeenCalled();
+      expect(mockRequest.session.destroy).toHaveBeenCalled();
+    });
+
+    it('should throw InternalServerErrorException when logout fails', async () => {
+      const mockRequest = {
+        logout: jest.fn((callback) => callback(new Error('Logout error'))),
+        session: {
+          destroy: jest.fn(),
+        },
+      };
+
+      await expect(controller.logout(mockRequest)).rejects.toThrow(
+        InternalServerErrorException,
+      );
+      expect(mockRequest.logout).toHaveBeenCalled();
+      expect(mockRequest.session.destroy).not.toHaveBeenCalled();
+    });
+
+    it('should throw InternalServerErrorException when session destruction fails', async () => {
+      const mockRequest = {
+        logout: jest.fn((callback) => callback(null)),
+        session: {
+          destroy: jest.fn((callback) =>
+            callback(new Error('Session destroy error')),
+          ),
+        },
+      };
+
+      await expect(controller.logout(mockRequest)).rejects.toThrow(
+        InternalServerErrorException,
+      );
+      expect(mockRequest.logout).toHaveBeenCalled();
+      expect(mockRequest.session.destroy).toHaveBeenCalled();
     });
   });
 });
