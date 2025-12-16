@@ -55,7 +55,6 @@ export class StockService {
       .select(sql`SUM(st.quantity)`.as('stock'))
       .where({ product: productUuid })
       .execute<{ stock: string | null }>('get');
-    console.log(result);
     return {
       productUuid,
       stock: result?.stock ? +result.stock : 0,
