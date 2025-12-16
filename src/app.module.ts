@@ -6,6 +6,7 @@ import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { StockModule } from './stock/stock.module';
+import { ShopModule } from './shop/shop.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { StockModule } from './stock/stock.module';
     AuthModule,
     UsersModule,
     StockModule,
+    ShopModule,
   ],
   controllers: [AppController],
   providers: [AppService],
