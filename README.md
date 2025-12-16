@@ -79,6 +79,25 @@ Users of the shop are all treated as guests without login. They only see product
 - unitPrice
 - createdAt
 
+## Schema Changes and Migration
+
+MikroORM is used to manage the entity models, as well as to handle database operations, including connecting and migrations.
+We check in these generated migrations to keep a lineage of database changes as well as to keep developers in sync.
+In order to make changes to the schema and db:
+
+- Create or edit the entity in src/entities
+- Run `npx mikro-orm migration:create` to generate the migration
+- Look through the migration generated. This is not always perfect on the first go. Add in a `down` method for rollback
+- Run `npx mikro-orm migration:up` to execute the changes to the database
+
+```bash
+# To generate migration
+$ npx mikro-orm migration:create
+
+# To run migration
+$ npx mikro-orm migration:up
+```
+
 ## Prerequisites
 
 - Node.js: >=v24.3.0
@@ -131,21 +150,62 @@ $ pnpm run test:e2e
 $ pnpm run test:cov
 ```
 
-## Schema Changes and Migration
+## Current features and possible extensions
 
-MikroORM is used to manage the entity models, as well as to handle database operations, including connecting and migrations.
-We check in these generated migrations to keep a lineage of database changes as well as to keep developers in sync.
-In order to make changes to the schema and db:
+### Products/Shop
 
-- Create or edit the entity in src/entities
-- Run `npx mikro-orm migration:create` to generate the migration
-- Look through the migration generated. This is not always perfect on the first go. Add in a `down` method for rollback
-- Run `npx mikro-orm migration:up` to execute the changes to the database
+Implemented:
 
-```bash
-# To generate migration
-$ npx mikro-orm migration:create
+- CRUD for SKU, display name, price, description, on sale status
 
-# To run migration
-$ npx mikro-orm migration:up
-```
+Extensions:
+
+- Images for products (currently dummys are used)
+- Richer product search on both admin and shop UI
+- Pagination
+
+### Stock Transactions
+
+Implemented:
+
+- Adding/removing stock
+- Querying for available stock
+- Purchases checking then reducing stock
+
+Extensions:
+
+- Warehouse/location management
+
+### Orders
+
+Implemented:
+
+- Order containing multiple items
+- Items holding a snapshot of prices
+- Orders respecting available stock
+
+Extensions:
+
+- Order management and states
+- Payment integration, confirmation, payment failures, order cancellations and returns
+
+### Users
+
+Implemented:
+
+- User auth and login for admin UI
+
+Extensions:
+
+- Other login methods
+- User management UI
+- User roles
+- Customer logins
+
+### Others
+
+Extensions:
+
+- Deployment readiness: secrets management, database connections
+- Scalability: DB sharding, read cache, object storage and CDN
+- Code quality and DevX improvements
