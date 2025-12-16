@@ -1,9 +1,83 @@
 # Merchtopia Backend
 
-Merchtopia is a product management application that allows for admin to create, read, update and delete product descriptions,
-update stock, and for end users to buy product.
+Merchtopia is a product management application that allows for admin to create, read, update and delete product descriptions, update stock, and for end users to buy product.
 
 ## Description
+
+This is the backend providing the business logic and persistence as well as authentication. The main stack consists of:
+
+- nestjs
+- mikroorm
+- postgresql
+- typescript
+- swagger
+- passport
+
+The dev database is hosted using a docker container and is accessed as entities through MikroOrm. We use session based auth for the admin functions and users are persisted on the database with their passwords hashed.
+
+## Project Organisation
+
+The project is split into 3 main repositories. The first one being this which is the backend, an admin UI, and a shop UI for public use.
+
+The backend represents the business logic and is split up into modules:
+
+- product: processes product information including price, description, title, sku, and flags to control if it is on sale
+- shop: provides access to catalog of items on sale, and product information
+- auth: provides authentication services to log the user in and out, as well as to persist session login
+- stock: handles StockTransactions, which represent restocking and reduction of stock either via sales or damage. This provides the system with counts of remaining stock
+
+Users on the admin UI need to be authenticated. Users are added through a script `pnpm run create-user <user-email>` described in further detail below. The admin UI allows for management of product entries as well as stock.
+
+Users of the shop are all treated as guests without login. They only see products that are on sale, and can only add to cart and purchase items that are still in stock
+
+## Schema and entities
+
+### User
+
+- uuid (primary key)
+- email
+- passwordHash
+- timestamps
+
+### Product
+
+- uuid (primary key)
+- sku
+- displayName
+- description
+- price
+- isOnSale
+- timestamps
+- deletedAt
+
+### StockTransaction
+
+- uuid (primary key)
+- product (foreign key to Product)
+- quantity
+- type
+- referenceId
+- notes
+- createdAt
+
+### Order
+
+- uuid (primary key)
+- customerName
+- customerEmail
+- status
+- items (to many OrderItems)
+- timestamps
+- deletedAt
+
+### OrderItem
+
+- uuid (primary key)
+- order (foreign key to Order)
+- product (foreign key to Product)
+- quantity
+- unitPrice
+- createdAt
 
 ## Prerequisites
 
@@ -56,19 +130,6 @@ $ pnpm run test:e2e
 # test coverage
 $ pnpm run test:cov
 ```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
 
 ## Schema Changes and Migration
 
