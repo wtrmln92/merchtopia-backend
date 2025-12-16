@@ -14,7 +14,7 @@ describe('ProductService', () => {
       flush: jest.fn(),
       findAll: jest.fn(),
       findOne: jest.fn(),
-      assign: jest.fn(),
+      assign: jest.fn((entity, dto) => Object.assign(entity, dto)),
       remove: jest.fn().mockReturnThis(),
     };
 

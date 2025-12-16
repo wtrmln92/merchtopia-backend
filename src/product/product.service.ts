@@ -9,10 +9,8 @@ export class ProductService {
   constructor(private readonly em: EntityManager) {}
 
   async create(createProductDto: CreateProductDto) {
-    const { sku, displayName } = createProductDto;
     const product = new Product();
-    product.sku = sku;
-    product.displayName = displayName;
+    this.em.assign(product, createProductDto);
     await this.em.persist(product).flush();
     return product;
   }

@@ -15,6 +15,9 @@ export class Product {
     @Property({ nullable: true })
     description?: string;
 
+    @Property({ type: 'decimal', precision: 10, scale: 2, default: '10.00' })
+    price: string = '10.00';
+
     @Property({ default: false })
     isOnSale: boolean = false;
 

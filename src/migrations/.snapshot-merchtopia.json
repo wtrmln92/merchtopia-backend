@@ -46,6 +46,18 @@
           "length": 255,
           "mappedType": "string"
         },
+        "price": {
+          "name": "price",
+          "type": "numeric(10,2)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "precision": 10,
+          "scale": 2,
+          "default": "'10.00'",
+          "mappedType": "decimal"
+        },
         "is_on_sale": {
           "name": "is_on_sale",
           "type": "boolean",
