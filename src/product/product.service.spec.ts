@@ -14,7 +14,7 @@ describe('ProductService', () => {
       flush: jest.fn(),
       findAll: jest.fn(),
       findOne: jest.fn(),
-      assign: jest.fn((entity, dto) => Object.assign(entity, dto)),
+      assign: jest.fn((entity, dto) => Object.assign(entity, dto)) as unknown as EntityManager['assign'],
       remove: jest.fn().mockReturnThis(),
     };
 
@@ -36,18 +36,19 @@ describe('ProductService', () => {
   });
 
   describe('create', () => {
-    it('should create a product with sku and displayName', async () => {
-      const createProductDto = { sku: 'SKU-001', displayName: 'Test Product' };
+    it('should create a product with sku, displayName and price', async () => {
+      const createProductDto = { sku: 'SKU-001', displayName: 'Test Product', price: 19.99 };
 
       const result = await service.create(createProductDto);
 
       expect(result).toBeInstanceOf(Product);
       expect(result.sku).toBe('SKU-001');
       expect(result.displayName).toBe('Test Product');
+      expect(result.price).toBe('19.99');
     });
 
     it('should persist and flush the product', async () => {
-      const createProductDto = { sku: 'SKU-002', displayName: 'Another Product' };
+      const createProductDto = { sku: 'SKU-002', displayName: 'Another Product', price: 29.99 };
 
       await service.create(createProductDto);
 
@@ -103,10 +104,10 @@ describe('ProductService', () => {
 
   describe('update', () => {
     const mockUuid = '550e8400-e29b-41d4-a716-446655440000';
-    const existingProduct = { uuid: mockUuid, sku: 'SKU-001', displayName: 'Original Name' };
+    const existingProduct = { uuid: mockUuid, sku: 'SKU-001', displayName: 'Original Name', price: '10.00' };
 
     it('should update and return the product when found', async () => {
-      const updateDto = { sku: 'SKU-002', displayName: 'Updated Name' };
+      const updateDto = { sku: 'SKU-002', displayName: 'Updated Name', price: 24.99 };
       (mockEntityManager.findOne as jest.Mock).mockResolvedValue({ ...existingProduct });
 
       const result = await service.update(mockUuid, updateDto);
@@ -114,7 +115,7 @@ describe('ProductService', () => {
       expect(mockEntityManager.findOne).toHaveBeenCalledWith(Product, mockUuid);
       expect(mockEntityManager.assign).toHaveBeenCalledWith(
         expect.objectContaining({ uuid: mockUuid }),
-        updateDto
+        { sku: 'SKU-002', displayName: 'Updated Name', price: '24.99' }
       );
       expect(mockEntityManager.flush).toHaveBeenCalled();
       expect(result.uuid).toBe(mockUuid);
@@ -141,6 +142,18 @@ describe('ProductService', () => {
       expect(mockEntityManager.assign).toHaveBeenCalledWith(
         expect.objectContaining({ uuid: mockUuid }),
         updateDto
+      );
+    });
+
+    it('should handle partial update with only price', async () => {
+      const updateDto = { price: 49.99 };
+      (mockEntityManager.findOne as jest.Mock).mockResolvedValue({ ...existingProduct });
+
+      await service.update(mockUuid, updateDto);
+
+      expect(mockEntityManager.assign).toHaveBeenCalledWith(
+        expect.objectContaining({ uuid: mockUuid }),
+        { price: '49.99' }
       );
     });
 
@@ -171,7 +184,11 @@ describe('ProductService', () => {
     const mockUuid = '550e8400-e29b-41d4-a716-446655440000';
 
     it('should soft delete the product when found', async () => {
-      const mockProduct = { uuid: mockUuid, sku: 'SKU-001', displayName: 'Test Product' };
+      const mockProduct: { uuid: string; sku: string; displayName: string; deletedAt?: Date } = {
+        uuid: mockUuid,
+        sku: 'SKU-001',
+        displayName: 'Test Product',
+      };
       (mockEntityManager.findOne as jest.Mock).mockResolvedValue(mockProduct);
 
       await service.remove(mockUuid);

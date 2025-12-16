@@ -9,8 +9,12 @@ export class ProductService {
   constructor(private readonly em: EntityManager) {}
 
   async create(createProductDto: CreateProductDto) {
+    const { price, ...rest } = createProductDto;
     const product = new Product();
-    this.em.assign(product, createProductDto);
+    this.em.assign(product, {
+      ...rest,
+      price: price.toFixed(2),
+    });
     await this.em.persist(product).flush();
     return product;
   }
@@ -33,7 +37,11 @@ export class ProductService {
       throw new NotFoundException('Product not found');
     }
 
-    this.em.assign(product, updateProductDto);
+    const { price, ...rest } = updateProductDto;
+    this.em.assign(product, {
+      ...rest,
+      ...(price !== undefined && { price: price.toFixed(2) }),
+    });
     await this.em.flush();
     return product;
   }
