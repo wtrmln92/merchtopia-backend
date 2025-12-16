@@ -77,6 +77,112 @@
           "default": "gen_random_uuid()",
           "mappedType": "uuid"
         },
+        "product_uuid": {
+          "name": "product_uuid",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "integer"
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "enumItems": [
+            "INCOMING",
+            "OUTGOING_ORDER",
+            "ADJUSTMENT"
+          ],
+          "mappedType": "enum"
+        },
+        "reference_id": {
+          "name": "reference_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "uuid"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "default": "now()",
+          "mappedType": "datetime"
+        }
+      },
+      "name": "stock_transaction",
+      "schema": "public",
+      "indexes": [
+        {
+          "keyName": "stock_transaction_pkey",
+          "columnNames": [
+            "uuid"
+          ],
+          "composite": false,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "stock_transaction_product_uuid_foreign": {
+          "constraintName": "stock_transaction_product_uuid_foreign",
+          "columnNames": [
+            "product_uuid"
+          ],
+          "localTableName": "public.stock_transaction",
+          "referencedColumnNames": [
+            "uuid"
+          ],
+          "referencedTableName": "public.product",
+          "updateRule": "cascade"
+        }
+      },
+      "nativeEnums": {}
+    },
+    {
+      "columns": {
+        "uuid": {
+          "name": "uuid",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "mappedType": "uuid"
+        },
         "email": {
           "name": "email",
           "type": "varchar(255)",
