@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { EntityManager } from '@mikro-orm/postgresql';
+import { EntityManager, sql } from '@mikro-orm/postgresql';
 import {
   StockTransaction,
   StockTransactionType,
@@ -52,10 +52,10 @@ export class StockService {
 
     const result = await this.em
       .createQueryBuilder(StockTransaction, 'st')
-      .select('SUM(st.quantity) as stock')
+      .select(sql`SUM(st.quantity)`.as('stock'))
       .where({ product: productUuid })
       .execute<{ stock: string | null }>('get');
-
+    console.log(result);
     return {
       productUuid,
       stock: result?.stock ? +result.stock : 0,
