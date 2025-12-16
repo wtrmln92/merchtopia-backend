@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { StockModule } from './stock/stock.module';
 import { ShopModule } from './shop/shop.module';
+import { OrderModule } from './order/order.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { ShopModule } from './shop/shop.module';
     UsersModule,
     StockModule,
     ShopModule,
+    OrderModule,
   ],
   controllers: [AppController],
   providers: [AppService],
