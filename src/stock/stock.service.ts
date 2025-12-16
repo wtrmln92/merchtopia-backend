@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { EntityManager, sql } from '@mikro-orm/postgresql';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { InsufficientStockException } from './exceptions/insufficient-stock.exception';
+import { EntityManager, LockMode, sql } from '@mikro-orm/postgresql';
 import {
   StockTransaction,
   StockTransactionType,
@@ -29,6 +30,16 @@ export class StockService {
   }
 
   async adjust(adjustStockDto: AdjustStockDto) {
+    if (adjustStockDto.quantity < 0) {
+      return this.deductStock(
+        adjustStockDto.productUuid,
+        Math.abs(adjustStockDto.quantity),
+        StockTransactionType.ADJUSTMENT,
+        undefined,
+        adjustStockDto.notes,
+      );
+    }
+
     const product = await this.em.findOne(Product, adjustStockDto.productUuid);
     if (!product) {
       throw new NotFoundException('Product not found');
@@ -42,6 +53,48 @@ export class StockService {
 
     await this.em.persist(transaction).flush();
     return transaction;
+  }
+
+  async deductStock(
+    productUuid: string,
+    quantity: number,
+    type: StockTransactionType = StockTransactionType.OUTGOING_ORDER,
+    referenceId?: string,
+    notes?: string,
+  ) {
+    if (quantity <= 0) {
+      throw new BadRequestException('Quantity must be positive');
+    }
+
+    return this.em.transactional(async (em) => {
+      const product = await em.findOne(Product, productUuid, {
+        lockMode: LockMode.PESSIMISTIC_WRITE,
+      });
+      if (!product) {
+        throw new NotFoundException('Product not found');
+      }
+
+      const result = await em
+        .createQueryBuilder(StockTransaction, 'st')
+        .select(sql`COALESCE(SUM(st.quantity), 0)`.as('total'))
+        .where({ product: productUuid })
+        .execute<{ total: string }>('get');
+
+      const currentStock = Number(result.total);
+      if (currentStock < quantity) {
+        throw new InsufficientStockException(currentStock, quantity);
+      }
+
+      const transaction = new StockTransaction();
+      transaction.product = product;
+      transaction.quantity = -quantity;
+      transaction.type = type;
+      transaction.referenceId = referenceId;
+      transaction.notes = notes;
+
+      await em.persist(transaction).flush();
+      return transaction;
+    });
   }
 
   async getStockLevel(productUuid: string) {

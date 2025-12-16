@@ -12,7 +12,7 @@ export class StockTransaction {
     @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
     uuid: string;
 
-    @ManyToOne(() => Product)
+    @ManyToOne(() => Product, { index: true })
     product!: Product;
 
     @Property({ type: 'int' })

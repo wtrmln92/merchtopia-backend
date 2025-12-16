@@ -1,4 +1,4 @@
-import { Entity, Filter, PrimaryKey, Property } from "@mikro-orm/core";
+import { Entity, Filter, Formula, PrimaryKey, Property } from "@mikro-orm/core";
 
 @Entity()
 @Filter({ name: 'softDelete', cond: { deletedAt: null }, default: true })
@@ -29,4 +29,11 @@ export class Product {
 
     @Property({ nullable: true })
     deletedAt?: Date;
+
+    @Formula(alias => `(
+        SELECT COALESCE(SUM(st.quantity), 0)
+        FROM stock_transaction st
+        WHERE st.product_uuid = ${alias}.uuid
+    )`)
+    stockAmount: number = 0;
 }

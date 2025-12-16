@@ -198,6 +198,16 @@
       "schema": "public",
       "indexes": [
         {
+          "columnNames": [
+            "product_uuid"
+          ],
+          "composite": false,
+          "keyName": "stock_transaction_product_uuid_index",
+          "constraint": false,
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "stock_transaction_pkey",
           "columnNames": [
             "uuid"

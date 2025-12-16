@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { StockService } from './stock.service';
-import { EntityManager } from '@mikro-orm/postgresql';
-import { NotFoundException } from '@nestjs/common';
+import { EntityManager, LockMode } from '@mikro-orm/postgresql';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { InsufficientStockException } from './exceptions/insufficient-stock.exception';
 import {
   StockTransaction,
   StockTransactionType,
@@ -37,6 +38,7 @@ describe('StockService', () => {
       findOne: jest.fn(),
       find: jest.fn(),
       createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
+      transactional: jest.fn().mockImplementation((fn) => fn(mockEntityManager)),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -113,18 +115,20 @@ describe('StockService', () => {
       expect(result.notes).toBe('Found extra stock');
     });
 
-    it('should create an ADJUSTMENT stock transaction with negative quantity', async () => {
+    it('should create an ADJUSTMENT stock transaction with negative quantity using deductStock', async () => {
       const adjustStockDto = {
         productUuid: mockProductUuid,
         quantity: -3,
         notes: 'Damaged items removed',
       };
       (mockEntityManager.findOne as jest.Mock).mockResolvedValue(mockProduct);
+      mockQueryBuilder.execute.mockResolvedValue({ total: '10' });
 
       const result = await service.adjust(adjustStockDto);
 
       expect(result.quantity).toBe(-3);
       expect(result.type).toBe(StockTransactionType.ADJUSTMENT);
+      expect(mockEntityManager.transactional).toHaveBeenCalled();
     });
 
     it('should throw NotFoundException when product does not exist', async () => {
@@ -140,6 +144,120 @@ describe('StockService', () => {
       await expect(service.adjust(adjustStockDto)).rejects.toThrow(
         'Product not found',
       );
+    });
+
+    it('should throw InsufficientStockException when negative adjustment exceeds stock', async () => {
+      const adjustStockDto = {
+        productUuid: mockProductUuid,
+        quantity: -10,
+        notes: 'Remove damaged',
+      };
+      (mockEntityManager.findOne as jest.Mock).mockResolvedValue(mockProduct);
+      mockQueryBuilder.execute.mockResolvedValue({ total: '5' });
+
+      await expect(service.adjust(adjustStockDto)).rejects.toThrow(
+        InsufficientStockException,
+      );
+      try {
+        await service.adjust(adjustStockDto);
+      } catch (e) {
+        expect(e.available).toBe(5);
+        expect(e.requested).toBe(10);
+      }
+    });
+  });
+
+  describe('deductStock', () => {
+    it('should deduct stock with pessimistic locking', async () => {
+      (mockEntityManager.findOne as jest.Mock).mockResolvedValue(mockProduct);
+      mockQueryBuilder.execute.mockResolvedValue({ total: '20' });
+
+      const result = await service.deductStock(mockProductUuid, 5);
+
+      expect(result).toBeInstanceOf(StockTransaction);
+      expect(result.quantity).toBe(-5);
+      expect(result.type).toBe(StockTransactionType.OUTGOING_ORDER);
+      expect(mockEntityManager.findOne).toHaveBeenCalledWith(
+        Product,
+        mockProductUuid,
+        { lockMode: LockMode.PESSIMISTIC_WRITE },
+      );
+      expect(mockEntityManager.transactional).toHaveBeenCalled();
+    });
+
+    it('should use custom transaction type when provided', async () => {
+      (mockEntityManager.findOne as jest.Mock).mockResolvedValue(mockProduct);
+      mockQueryBuilder.execute.mockResolvedValue({ total: '20' });
+
+      const result = await service.deductStock(
+        mockProductUuid,
+        5,
+        StockTransactionType.ADJUSTMENT,
+      );
+
+      expect(result.type).toBe(StockTransactionType.ADJUSTMENT);
+    });
+
+    it('should throw BadRequestException when quantity is zero', async () => {
+      await expect(service.deductStock(mockProductUuid, 0)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.deductStock(mockProductUuid, 0)).rejects.toThrow(
+        'Quantity must be positive',
+      );
+    });
+
+    it('should throw BadRequestException when quantity is negative', async () => {
+      await expect(service.deductStock(mockProductUuid, -5)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.deductStock(mockProductUuid, -5)).rejects.toThrow(
+        'Quantity must be positive',
+      );
+    });
+
+    it('should throw InsufficientStockException when insufficient stock', async () => {
+      (mockEntityManager.findOne as jest.Mock).mockResolvedValue(mockProduct);
+      mockQueryBuilder.execute.mockResolvedValue({ total: '3' });
+
+      await expect(service.deductStock(mockProductUuid, 5)).rejects.toThrow(
+        InsufficientStockException,
+      );
+      try {
+        await service.deductStock(mockProductUuid, 5);
+      } catch (e) {
+        expect(e.available).toBe(3);
+        expect(e.requested).toBe(5);
+      }
+    });
+
+    it('should throw NotFoundException when product does not exist', async () => {
+      (mockEntityManager.findOne as jest.Mock).mockResolvedValue(null);
+
+      await expect(service.deductStock(mockProductUuid, 5)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.deductStock(mockProductUuid, 5)).rejects.toThrow(
+        'Product not found',
+      );
+    });
+
+    it('should include referenceId and notes when provided', async () => {
+      const referenceId = '123e4567-e89b-12d3-a456-426614174000';
+      const notes = 'Order fulfillment';
+      (mockEntityManager.findOne as jest.Mock).mockResolvedValue(mockProduct);
+      mockQueryBuilder.execute.mockResolvedValue({ total: '20' });
+
+      const result = await service.deductStock(
+        mockProductUuid,
+        5,
+        StockTransactionType.OUTGOING_ORDER,
+        referenceId,
+        notes,
+      );
+
+      expect(result.referenceId).toBe(referenceId);
+      expect(result.notes).toBe(notes);
     });
   });
 
